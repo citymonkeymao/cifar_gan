@@ -93,7 +93,7 @@ def training(epoch_nb, BATCH_SIZE):
         print("Number of batches", int(X_train.shape[0]/BATCH_SIZE))
         for index in range(int(X_train.shape[0]/BATCH_SIZE)):
             for i in range(BATCH_SIZE):
-                noise[i, :] = np.random.uniform(-1, 1, 100)
+                noise[i] = np.random.uniform(-1, 1, 100)
             image_batch = X_train[index*BATCH_SIZE:(index+1)*BATCH_SIZE]
             generated_images = generator.predict(noise, verbose=0)
             if old != epoch:
@@ -112,7 +112,7 @@ def training(epoch_nb, BATCH_SIZE):
             d_loss = discriminator.train_on_batch(X, y)
             print("batch %d d_loss : %f" % (index, d_loss))
             for i in range(BATCH_SIZE):
-                noise[i, :] = np.random.uniform(-1, 1, 100)
+                noise[i] = np.random.uniform(-1, 1, 100)
             discriminator.trainable = False
             g_loss = discriminator_on_generator.train_on_batch(
                 noise, [1] * BATCH_SIZE)
