@@ -71,7 +71,8 @@ def generator_containing_discriminator(generator, discriminator):
     discriminator.trainable = False
     model.add(discriminator)
     return model
-
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
 def training(epoch_nb, BATCH_SIZE):
     (X_train, y_train), (X_test, y_test) = cifar10.load_data()
     X_train = X_train.astype('float32')
@@ -80,13 +81,12 @@ def training(epoch_nb, BATCH_SIZE):
     generator = generator_model()
     discriminator_on_generator = \
         generator_containing_discriminator(generator, discriminator)
-    d_optim = SGD(lr=0.0005, momentum=0.9, nesterov=True)
-    g_optim = SGD(lr=0.0005, momentum=0.9, nesterov=True)
-    generator.compile(loss='binary_crossentropy', optimizer="SGD")
+    old = -1
+    generator.compile(loss='binary_crossentropy', optimizer="adam")
     discriminator_on_generator.compile(
-        loss='binary_crossentropy', optimizer=g_optim)
+        loss='binary_crossentropy', optimizer='adam')
     discriminator.trainable = True
-    discriminator.compile(loss='binary_crossentropy', optimizer=d_optim)
+    discriminator.compile(loss='binary_crossentropy', optimizer='SGD')
     noise = np.zeros((BATCH_SIZE, 100))
     for epoch in range(epoch_nb):
         print 'Epoch : ' + str(epoch)
@@ -96,16 +96,21 @@ def training(epoch_nb, BATCH_SIZE):
                 noise[i, :] = np.random.uniform(-1, 1, 100)
             image_batch = X_train[index*BATCH_SIZE:(index+1)*BATCH_SIZE]
             generated_images = generator.predict(noise, verbose=0)
-            if index % 20 == 0:
-                os.system('mkdir ' + str(epoch)+"_"+str(index))
-                for i_save, gen_img in enumerate(generated_images):
-                    gen_img *= 255
-                    to_save = Image.fromarray(gen_img, 'RGB')
-                    to_save.save(str(epoch)+"_"+str(index) + '/' + str(i_save) + '.png')
+            if old != epoch:
+                old = epoch
+                for ii in range(10):
+                    plt.imshow(generated_images[ii])
+                    plt.show()
+#            if index % 20 == 0:
+#                os.system('mkdir ' + str(epoch)+"_"+str(index))
+#                for i_save, gen_img in enumerate(generated_images):
+#                    gen_img *= 255
+#                    to_save = Image.fromarray(gen_img, 'RGB')
+#                    to_save.save(str(epoch)+"_"+str(index) + '/' + str(i_save) + '.png')
             y_real = [1] * BATCH_SIZE
             y_fake = [0] * BATCH_SIZE
             d_loss_real = discriminator.train_on_batch(image_batch, y_real)
-            d_loss_fake = discriminator.train_on_batch(image_batch, y_real)
+            d_loss_fake = discriminator.train_on_batch(generated_images, y_fake)
             print("batch %d d_loss_real : %f" % (index, d_loss_real))
             print("batch %d d_loss_fake : %f" % (index, d_loss_fake))
             for i in range(BATCH_SIZE):
