@@ -107,12 +107,10 @@ def training(epoch_nb, BATCH_SIZE):
 #                    gen_img *= 255
 #                    to_save = Image.fromarray(gen_img, 'RGB')
 #                    to_save.save(str(epoch)+"_"+str(index) + '/' + str(i_save) + '.png')
-            y_real = [1] * BATCH_SIZE
-            y_fake = [0] * BATCH_SIZE
-            d_loss_real = discriminator.train_on_batch(image_batch, y_real)
-            d_loss_fake = discriminator.train_on_batch(generated_images, y_fake)
-            print("batch %d d_loss_real : %f" % (index, d_loss_real))
-            print("batch %d d_loss_fake : %f" % (index, d_loss_fake))
+            X = np.concatenate((image_batch, generated_images))
+            y = [1] * BATCH_SIZE + [0] * BATCH_SIZE
+            d_loss = discriminator.train_on_batch(X, y)
+            print("batch %d d_loss : %f" % (index, d_loss))
             for i in range(BATCH_SIZE):
                 noise[i, :] = np.random.uniform(-1, 1, 100)
             discriminator.trainable = False
