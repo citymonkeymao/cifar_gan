@@ -8,6 +8,7 @@ from keras.layers.core import Dropout
 from keras.layers.convolutional import Convolution2D, MaxPooling2D
 from keras.layers.core import Flatten
 from keras.optimizers import SGD
+from keras.optimizers import adam
 from keras.datasets import mnist
 from keras.datasets import cifar10
 import numpy as np
@@ -20,23 +21,22 @@ def generator_model():
     model.add(Dense(input_dim=100, output_dim=1024))
     model.add(Activation('relu'))
     model.add(Dense(1024*4*4))
-    model.add(BatchNormalization())
+    model.add(BatchNormalization(axis=1))
     model.add(Activation('relu'))
     model.add(Reshape((4, 4, 1024), input_shape=(4*4*1024,)))
     model.add(Convolution2D(512, 8, 8, border_mode='same'))
-    model.add(BatchNormalization())
+    model.add(BatchNormalization(axis=1))
     model.add(Activation('relu'))
     model.add(UpSampling2D(size=(2, 2)))
     model.add(Convolution2D(256, 5, 5, border_mode='same'))
-    model.add(BatchNormalization())
+    model.add(BatchNormalization(axis=1))
     model.add(Activation('relu'))
     model.add(UpSampling2D(size=(2, 2)))
     model.add(Convolution2D(128, 5, 5, border_mode='same'))
-    model.add(BatchNormalization())
+    model.add(BatchNormalization(axis=1))
     model.add(Activation('relu'))
     model.add(UpSampling2D(size=(2, 2)))
     model.add(Convolution2D(3, 5, 5, border_mode='same'))
-    model.add(BatchNormalization())
     model.add(Activation('sigmoid'))
     model.summary()
     return model
@@ -82,11 +82,14 @@ def training(epoch_nb, BATCH_SIZE):
     discriminator_on_generator = \
         generator_containing_discriminator(generator, discriminator)
     old = -1
-    generator.compile(loss='binary_crossentropy', optimizer="adam")
+    g_optim = adam(lr=1e-4)
+    d_optim = adam(lr=1e-3)
+
+    generator.compile(loss='binary_crossentropy', optimizer=g_optim)
     discriminator_on_generator.compile(
         loss='binary_crossentropy', optimizer='adam')
     discriminator.trainable = True
-    discriminator.compile(loss='binary_crossentropy', optimizer='SGD')
+    discriminator.compile(loss='binary_crossentropy', optimizer=d_optim)
     noise = np.zeros((BATCH_SIZE, 100))
     for epoch in range(epoch_nb):
         print 'Epoch : ' + str(epoch)
@@ -99,20 +102,14 @@ def training(epoch_nb, BATCH_SIZE):
             if old != epoch:
                 old = epoch
                 for ii in range(10):
-                    plt.imshow(generated_images[ii])
+                    plt.imshow(generated_images[ii] * 255)
                     plt.show()
-#            if index % 20 == 0:
-#                os.system('mkdir ' + str(epoch)+"_"+str(index))
-#                for i_save, gen_img in enumerate(generated_images):
-#                    gen_img *= 255
-#                    to_save = Image.fromarray(gen_img, 'RGB')
-#                    to_save.save(str(epoch)+"_"+str(index) + '/' + str(i_save) + '.png')
             X = np.concatenate((image_batch, generated_images))
             y = [1] * BATCH_SIZE + [0] * BATCH_SIZE
             d_loss = discriminator.train_on_batch(X, y)
             print("batch %d d_loss : %f" % (index, d_loss))
-            for i in range(BATCH_SIZE):
-                noise[i] = np.random.uniform(-1, 1, 100)
+#            for i in range(BATCH_SIZE):
+#                noise[i] = np.random.uniform(-1, 1, 100)
             discriminator.trainable = False
             g_loss = discriminator_on_generator.train_on_batch(
                 noise, [1] * BATCH_SIZE)
